@@ -4,7 +4,8 @@
 
 (meditations
   "You can create a set by converting another collection"
-  (= #{3} (set '(3)))
+  (= (= #{3} (set '(3)))
+     (= #{} (set nil)))
 
   "Counting them is like counting other collections"
   (= 3 (count #{1 2 3}))
