@@ -7,13 +7,13 @@
 
 (meditations
   "Some objects can be tagged using the with-meta function"
-  (= __ (meta giants))
+  (= {:league "National League"} (meta giants))
 
   "Or more succinctly with a reader macro"
-  (= __ (meta '^{:division "West"} Giants))
+  (= {:division "West"} (meta '^{:division "West"} Giants))
 
   "While others can't"
-  (= __ (try
+  (= "This doesn't implement the IObj interface" (try
           (with-meta
             2
             {:prime true})
@@ -21,15 +21,15 @@
             "This doesn't implement the IObj interface")))
 
   "Notice when metadata carries over"
-  (= __ (meta (merge '^{:foo :bar} {:a 1 :b 2}
+  (= {:foo :bar} (meta (merge '^{:foo :bar} {:a 1 :b 2}
                      {:b 3 :c 4})))
 
   "And when it doesn't"
-  (= __ (meta (merge {:a 1 :b 2}
+  (= nil (meta (merge {:a 1 :b 2}
                      '^{:foo :bar} {:b 3 :c 4})))
 
   "Metadata can be used as a type hint to avoid reflection during runtime"
-  (= __ (#(.charAt ^String % 0) "Cast me"))
+  (= \C (#(.charAt ^String % 0) "Cast me"))
 
   "You can directly update an object's metadata"
   (= 8 (let [giants
