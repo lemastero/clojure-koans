@@ -83,6 +83,8 @@
 (= "foo" (string/trim " foo \t\n"))
 (= true (string/blank? " \n\t"))
 
+(format "%.3f my friend %s" 2.0 "Bob") ;; "2,000 my friend Bob"
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; list
@@ -194,6 +196,11 @@
 (map? {1 2})
 (empty? {})
 
+(def p {:name "John" :age 42})
+(update p :age inc)
+(update p :age + 2)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; seq
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -217,6 +224,31 @@
 (seq? '(1 2))
 (not (seq? [1 2]))
 
+(= '[2 3] (rest [1 2 3]))
+(= '() (rest nil))
+
+(= '[2 3] (next [1 2 3]))
+(= nil (next nil))
+
+(= 2
+   (fnext [1 2 3])
+   (second [1 2 3])
+   (first (next [1 2 3])) )
+
+(ffirst [[1 2] [3 4]]) ;; 1
+(first [[1 2] [3 4]])  ;; [1 2]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; nested associative collections
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def jdoe {:name "John" :lastname "Doe" :address {:street "Long" :city "NY"}})
+(get-in jdoe [:address :street]) ;; "Long"
+
+(def pals [{:name "John" :age 42} {:name :Frank :age 12}])
+(assoc-in  pals [0 :age] 70)  ;; [{:name "John", :age 70} {:name :Frank, :age 12}]
+(update-in pals [1 :age] inc) ;; [{:name "John", :age 42} {:name :Frank, :age 13}]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; functions
@@ -230,6 +262,19 @@
 
 (fn? #(+ 1))
 (fn? sort)
+
+;; declare
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; (defn foo [] (do-magic))
+;; CompilerException java.lang.RuntimeException: Unable to resolve symbol: do-magic in this context
+
+(declare do-magic)
+(defn foo [] (do-magic))
+
+(defn do-magic [] (println "casting powerfull spell"))
+(foo)
+
 
 ;; let, loop, do
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -248,6 +293,39 @@
     (println 1)
     (println 2)
     42))
+
+;; doseq
+;; execute body for each binding (probably for side effects), returns nil
+(doseq [ sign [-1 1]
+         nums [1 2 3] ]
+  (print (* sign nums)))
+;; -1 -2 -3 1 2 3 nil
+
+;; dynamically binding
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declare ^:dynamic t)
+
+(defn add-t []
+  (+ t 10) )
+
+;; (let [t 1] (add-t))
+;; ClassCastException clojure.lang.Var$Unbound cannot be cast to java.lang.Number  clojure.lang.Numbers.add (Numbers.java:128)
+
+(binding [t 1]
+  (add-t)) ;; 11
+
+;; http://stackoverflow.com/questions/1523240/let-vs-binding-in-clojure
+
+;; private functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(ns test)
+(defn- foo [] "World")
+(foo) ;; "World"
+
+(ns other)
+(test/foo) ;; CompilerException java.lang.IllegalStateException: var: #'test/foo is not public,
+
 
 ;; HOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -413,6 +491,12 @@
    (when false (/ 1 0)))
 (= "foo"
    (when true "foo"))
+
+(= nil
+   (when-not true "foo"))
+
+(= "foo"
+   (when-not false "foo"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; lazy seq
@@ -669,10 +753,103 @@
         "... sorry."))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Java interop
+;;  Java interop
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (javadoc "warfare")
 (= java.lang.String (class "warfare"))
 (= "SELECT * FROM" (.toUpperCase "select * from"))
 (== 1024 (Math/pow 2 10))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  clojure.test
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(clojure.test/is (= 4 (+ 2 2)))
+(clojure.test/is (= 4 (+ 2 2 2)) "Addition works")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; threading macros (arrow macros), doto
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; -> (thread-first macro)
+;; pass result as first argument to all next expressions
+
+(= (-> {}
+    (assoc :a 1)
+    (assoc :b 2))
+   {:a 1, :b 2})
+
+(=
+  (-> 1
+     (+ 1)
+     (* 2))
+  4)
+
+
+(first
+  (.split
+    (.replace
+      (.toUpperCase "a b c d")
+      "A" "X")
+    " "))
+
+(-> "a b c d"
+    .toUpperCase
+    (.replace "A" "X")
+    (.split " ")
+    first)
+
+(-> 3 (- 2)) ;; 1
+
+;; ->> (thread-last macro)
+;; pass result as first argument to all next expressions
+
+(->> 3 (- 2)) ;; -1
+
+;; doto returns oryginal object and pass the same object to all executions (not result)
+(doto 3
+  (- 2)
+  print) ;; 3 3
+
+(-> 3
+  (- 2)
+  print) ;; 1 nil
+
+;; http://clojure.org/guides/threading_macros
+;; TODO read REPL example: https://clojuredocs.org/clojure.core/-%3E#example-542692ccc026201cdc326c5a
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; java arrays
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def arr (double-array '(1.0 2.0)))
+(aget arr 1) ;; 2.0
+
+(def arr2 (int-array '(1 2)))
+(aget arr2 1) ;; 2
+
+;; (aget [1 2 3] 1)
+;; IllegalArgumentException No matching method found: aget
+
+;; misc
+
+;; into add all elements to first collection using conj
+
+(into (sorted-map) [[1 2] [3 4]]) ;; {1 2, 3 4}
+(into (sorted-map) [{1 2} {3 4}]) ;; {1 2, 3 4}
+(into [1 2] '(3 4)) ;; [1 2 3 4]
+(into [1 2] [3 4])  ;; [1 2 3 4]
+(into '(1 2) [3 4]) ;; (4 3 1 2)
+
+;; conversions & types
+
+(type 3.14)          ;; java.lang.Double
+(type (double 3.14)) ;; java.lang.Double
+(type (float 3.14))  ;; java.lang.Float
+
+(type 2)             ;; java.lang.Long
+(type (long 3.14))   ;; java.lang.Long
+(type (int 3.14))    ;; java.lang.Integer
