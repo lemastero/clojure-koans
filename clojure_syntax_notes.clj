@@ -820,6 +820,10 @@
 ;; http://clojure.org/guides/threading_macros
 ;; TODO read REPL example: https://clojuredocs.org/clojure.core/-%3E#example-542692ccc026201cdc326c5a
 
+;; some-> not pass expression if it is null
+
+(-> {:a 1} :b inc) ;; NullPointerException
+(some-> {:a 1} :b inc) ;; nil
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; java arrays
